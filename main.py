@@ -1,12 +1,12 @@
 from flask import Flask, request, jsonify
 import requests
 import os
-import openai
 import traceback
+from openai import OpenAI
 
 app = Flask(__name__)
 
-# Carregar prompt base
+# Carregar prompt
 try:
     with open("prompt.txt", "r", encoding="utf-8") as file:
         SYSTEM_PROMPT = file.read()
@@ -19,7 +19,8 @@ OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 ZAPI_TOKEN = os.environ.get("ZAPI_TOKEN")
 ZAPI_INSTANCE_ID = os.environ.get("ZAPI_INSTANCE_ID")
 
-openai.api_key = OPENAI_API_KEY
+# Cliente da OpenAI (nova API)
+client = OpenAI(api_key=OPENAI_API_KEY)
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
@@ -27,7 +28,6 @@ def webhook():
         data = request.json
         print("📥 JSON recebido:", data)
 
-        # Extrair mensagem e número do cliente
         phone = data.get("phone")
         message = data.get("text", {}).get("message", "")
 
@@ -38,8 +38,8 @@ def webhook():
         print(f"📱 Número: {phone}")
         print(f"💬 Mensagem: {message}")
 
-        # Enviar para o ChatGPT
-        completion = openai.ChatCompletion.create(
+        # ✅ Usando nova sintaxe da biblioteca openai>=1.0.0
+        response = client.chat.completions.create(
             model="gpt-4o",
             messages=[
                 {"role": "system", "content": SYSTEM_PROMPT},
@@ -47,10 +47,10 @@ def webhook():
             ]
         )
 
-        response_text = completion.choices[0].message["content"]
+        response_text = response.choices[0].message.content
         print("🤖 Resposta da IA:", response_text)
 
-        # Enviar para o WhatsApp via Z-API
+        # Enviar resposta via Z-API
         zapi_url = f"https://api.z-api.io/instances/{ZAPI_INSTANCE_ID}/token/{ZAPI_TOKEN}/send-messages"
         payload = {
             "phone": phone,
@@ -69,7 +69,7 @@ def webhook():
 
 @app.route('/', methods=['GET'])
 def home():
-    return 'Bot WhatsApp com IA está ativo ✅', 200
+    return 'Bot WhatsApp com IA usando nova OpenAI API ✅', 200
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)

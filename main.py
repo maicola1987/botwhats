@@ -22,11 +22,15 @@ def webhook():
     print("📥 Dados recebidos no webhook:", data)
 
     try:
-        message = data.get("message", "").strip()
-        phone = data.get("phone", "").strip()
+        # Aceita diferentes nomes de campos usados pela Z-API
+        message = data.get("message") or data.get("text") or ""
+        phone = data.get("phone") or data.get("from") or ""
+
+        message = message.strip()
+        phone = phone.strip()
 
         if not message or not phone:
-            print("⚠️ Dados incompletos: message ou phone ausentes")
+            print("⚠️ Dados incompletos: 'message' ou 'phone' ausentes")
             return jsonify({"error": "Dados incompletos"}), 400
 
         print(f"📩 Mensagem recebida: {message}")

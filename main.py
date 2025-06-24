@@ -19,7 +19,7 @@ OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 ZAPI_TOKEN = os.environ.get("ZAPI_TOKEN")
 ZAPI_INSTANCE_ID = os.environ.get("ZAPI_INSTANCE_ID")
 
-# Cliente da OpenAI (nova API)
+# Cliente OpenAI (nova API)
 client = OpenAI(api_key=OPENAI_API_KEY)
 
 @app.route('/webhook', methods=['POST'])
@@ -38,7 +38,7 @@ def webhook():
         print(f"📱 Número: {phone}")
         print(f"💬 Mensagem: {message}")
 
-        # ✅ Usando nova sintaxe da biblioteca openai>=1.0.0
+        # Gerar resposta com IA
         response = client.chat.completions.create(
             model="gpt-4o",
             messages=[
@@ -50,7 +50,7 @@ def webhook():
         response_text = response.choices[0].message.content
         print("🤖 Resposta da IA:", response_text)
 
-        # Enviar resposta via Z-API
+        # Enviar via Z-API
         zapi_url = f"https://api.z-api.io/instances/{ZAPI_INSTANCE_ID}/token/{ZAPI_TOKEN}/send-messages"
         payload = {
             "phone": phone,
@@ -58,7 +58,9 @@ def webhook():
         }
 
         zapi_response = requests.post(zapi_url, json=payload)
-        print("📤 Z-API:", zapi_response.status_code, zapi_response.text)
+        print("📤 Z-API status:", zapi_response.status_code)
+        print("📤 Z-API resposta:", zapi_response.text)
+        print("📤 Payload enviado:", payload)
 
         return jsonify({"status": "ok", "resposta": response_text}), 200
 
@@ -69,7 +71,7 @@ def webhook():
 
 @app.route('/', methods=['GET'])
 def home():
-    return 'Bot WhatsApp com IA usando nova OpenAI API ✅', 200
+    return 'Bot WhatsApp com IA está ativo ✅', 200
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)

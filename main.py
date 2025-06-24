@@ -19,10 +19,18 @@ openai.api_key = OPENAI_API_KEY
 @app.route('/webhook', methods=['POST'])
 def webhook():
     data = request.json
+    print("📥 Dados recebidos no webhook:", data)
 
     try:
-        message = data["message"]
-        phone = data["phone"]
+        message = data.get("message", "").strip()
+        phone = data.get("phone", "").strip()
+
+        if not message or not phone:
+            print("⚠️ Dados incompletos: message ou phone ausentes")
+            return jsonify({"error": "Dados incompletos"}), 400
+
+        print(f"📩 Mensagem recebida: {message}")
+        print(f"📱 Número do cliente: {phone}")
 
         # Consultar a OpenAI
         completion = openai.ChatCompletion.create(
@@ -34,21 +42,23 @@ def webhook():
         )
 
         response_text = completion.choices[0].message["content"]
+        print("🤖 Resposta da IA:", response_text)
 
-        # Enviar resposta pelo WhatsApp via Z-API
+        # Enviar resposta ao WhatsApp via Z-API
         url = f"https://api.z-api.io/instances/{ZAPI_INSTANCE_ID}/token/{ZAPI_TOKEN}/send-messages"
         payload = {
             "phone": phone,
             "message": response_text
         }
 
-        requests.post(url, json=payload)
+        zapi_response = requests.post(url, json=payload)
+        print("📤 Resposta da Z-API:", zapi_response.text)
 
-        return jsonify({"status": "ok", "message": "Resposta enviada"}), 200
+        return jsonify({"status": "ok", "message": "Resposta enviada com sucesso"}), 200
 
     except Exception as e:
-        print(f"Erro: {e}")
-        return jsonify({"error": "Erro no processamento"}), 500
+        print("❌ Erro no webhook:", str(e))
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/', methods=['GET'])
 def home():
